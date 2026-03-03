@@ -1,0 +1,41 @@
+cat > .gitignore << 'EOF'
+# Virtual environment
+venv/
+
+# Environment variables - NEVER commit these
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker volumes
+postgres_data/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+EOF
