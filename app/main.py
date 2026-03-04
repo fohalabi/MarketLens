@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import api_router
+from app.database_init import init_db
 
 # create the FastAPI instance
 app = FastAPI(
@@ -23,6 +24,11 @@ app.add_middleware(
 
 # Register all API routes
 app.include_router(api_router)
+
+# Initialize the database tables on startup
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 # Root endpoint
 @app.get("/")
