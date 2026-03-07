@@ -8,7 +8,7 @@ import json
 # CONFIG 
 
 # API_BASE = "http://app:8000/api"  # inside Docker network
-API_BASE = "http://localhost:8000/api"  # use this for local testing
+API_BASE = "http://host.docker.internal:8000/api"  # use this for local testing
 
 st.set_page_config(
     page_title="MarketLens",
