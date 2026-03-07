@@ -1,8 +1,10 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebsocketDisconnet
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import api_router
 from app.database_init import init_db
+from app.websockets.price_stream import manager, stream_prices
+import json
 
 # create the FastAPI instance
 app = FastAPI(
@@ -47,3 +49,27 @@ async def health_check():
         "status": "healthy",
         "environment": settings.APP_ENV
     }
+
+@app.websocket("/ws/prices")
+async def websocket_prices(websocket: Websocket):
+    """
+    Websocket endpoint for live price streaming.
+    Connect from Streamlit or any frontend like this:
+    ws://localhost:8000/ws/prices 
+    Send a message with the symbols to track: 
+    {
+        "symbols": ["AAPL", "GOOGL", "BTC-USD"]
+    }
+    """
+    await manager.connect(websocket)
+    try: 
+        # Wait for the client to send the symbols to track
+        data = await websocket.receive_text()
+        message = json.loads(data)
+        symbols = message.get("symbols", ["AAPL", "MSFT", "TSLA"])
+
+        # Start streaming prices
+        await stream_prices(websocket, symbols)
+
+    except WebsocketDisconnet:
+        manager.disconnect(websocket)
