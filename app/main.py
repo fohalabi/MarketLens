@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebsocketDisconnet
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import api_router
@@ -51,7 +51,7 @@ async def health_check():
     }
 
 @app.websocket("/ws/prices")
-async def websocket_prices(websocket: Websocket):
+async def websocket_prices(websocket: WebSocket):
     """
     Websocket endpoint for live price streaming.
     Connect from Streamlit or any frontend like this:
@@ -71,5 +71,5 @@ async def websocket_prices(websocket: Websocket):
         # Start streaming prices
         await stream_prices(websocket, symbols)
 
-    except WebsocketDisconnet:
+    except WebSocketDisconnect:
         manager.disconnect(websocket)
