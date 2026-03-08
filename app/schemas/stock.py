@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 from datetime import datetime
+from pydantic import ConfigDict
 
 
 # Base schema — shared fields between create and response
@@ -43,5 +44,4 @@ class StockResponse(StockBase):
     last_updated: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True  
+    model_config = ConfigDict(from_attributes=True)

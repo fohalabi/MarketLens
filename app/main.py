@@ -5,6 +5,13 @@ from app.api import api_router
 from app.database_init import init_db
 from app.websockets.price_stream import manager, stream_prices
 import json
+from contextlib import asynccontextmanager
+
+# Initialize the database tables on startup
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db() 
+    yield
 
 # create the FastAPI instance
 app = FastAPI(
@@ -13,6 +20,7 @@ app = FastAPI(
     description="Real-time market intelligence, one lens at a time.",
     doc_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # CORS configuration for frontend integration
@@ -27,10 +35,6 @@ app.add_middleware(
 # Register all API routes
 app.include_router(api_router)
 
-# Initialize the database tables on startup
-@app.on_event("startup")
-async def startup_event():
-    init_db()
 
 # Root endpoint
 @app.get("/")

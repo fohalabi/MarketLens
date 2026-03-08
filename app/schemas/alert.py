@@ -1,4 +1,4 @@
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, validator
 from typing import Optional
 from datetime import datetime
 
@@ -12,7 +12,8 @@ class AlertBase(BaseModel):
 
 # Validate that condition is only "above" or "below"
 class AlertCreate(AlertBase):
-    @validator("condition")
+    @field_validator("condition")
+    @classmethod
     def condition_must_be_valid(cls, v):
         if v not in ["above", "below"]:
             raise ValueError('condition must be "above" or "below"')
@@ -33,5 +34,4 @@ class AlertResponse(AlertBase):
     triggered_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model-config = ConfigDict(from_attributes=True)
