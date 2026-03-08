@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -34,4 +34,4 @@ class AlertResponse(AlertBase):
     triggered_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
 
-    model-config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True)
