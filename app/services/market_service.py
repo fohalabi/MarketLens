@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.stock import Stock
+from app.models.stock import Stock, StockHistory
 from app.schemas.stock import StockCreate, StockUpdate
 from app.core.fetcher import fetch_stock, fetch_stock_history
 from app.core.analyzer import analyze_stock, generate_signal
@@ -103,3 +103,75 @@ def get_stock_analysis(db: Session, symbol: str, period: str = "3mo") -> dict:
 def get_all_stocks(db: Session) -> List[Stock]:
     """Get all stocks stored in the database."""
     return db.query(Stock).all()
+
+
+def save_stock_history(db: Session, symbol: str, period: str = "1mo", interval: str = "1d") -> dict:
+    """
+    Fetch historical data and store it in PostgreSQL.
+    Skips duplicates automatically using the unique constraint.
+    """
+    history = fetch_stock_history(symbol, period=period, interval=interval)
+
+    saved_count = 0
+    skipped_count = 0
+
+    for record in history["data"]:
+        # Check if record already exists
+        existing = db.query(StockHistory).filter(
+            StockHistory.symbol == symbol.upper(),
+            StockHistory.date == record["date"],
+            StockHistory.interval == interval
+        ).first()
+
+        if not existing:
+            entry = StockHistory(
+                symbol=symbol.upper(),
+                date=record["date"],
+                open=record["open"],
+                high=record["high"],
+                low=record["low"],
+                close=record["close"],
+                volume=record["volume"],
+                interval=interval
+            )
+            db.add(entry)
+            saved_count += 1
+        else:
+            skipped_count += 1
+
+    db.commit()
+
+    return {
+        "symbol": symbol.upper(),
+        "period": period,
+        "interval": interval,
+        "saved": saved_count,
+        "skipped": skipped_count,
+        "total": len(history["data"])
+    }
+
+
+def get_stored_history(db: Session, symbol: str, interval: str = "1d") -> list:
+    """
+    Retrieve stored historical data from PostgreSQL.
+    Falls back to fetching from Yahoo Finance if no data in DB.
+    """
+    records = db.query(StockHistory).filter(
+        StockHistory.symbol == symbol.upper(),
+        StockHistory.interval == interval
+    ).order_by(StockHistory.date).all()
+
+    if not records:
+        return []
+
+    return [
+        {
+            "date": r.date,
+            "open": r.open,
+            "high": r.high,
+            "low": r.low,
+            "close": r.close,
+            "volume": r.volume
+        }
+        for r in records
+    ]
