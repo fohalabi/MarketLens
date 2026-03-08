@@ -126,12 +126,12 @@ def save_stock_history(db: Session, symbol: str, period: str = "1mo", interval: 
         if not existing:
             entry = StockHistory(
                 symbol=symbol.upper(),
-                date=record["date"],
-                open=record["open"],
-                high=record["high"],
-                low=record["low"],
-                close=record["close"],
-                volume=record["volume"],
+                date=str(record["date"]),
+                open=float(record["open"]),
+                high=float(record["high"]),
+                low=float(record["low"]),
+                close=float(record["close"]),
+                volume=float(record["volume"]),
                 interval=interval
             )
             db.add(entry)

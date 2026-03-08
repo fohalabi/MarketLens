@@ -111,33 +111,44 @@ elif page == "📈 Stock Analyzer":
     with col3:
         interval = st.selectbox("Interval", ["1d", "1wk"], index=0)
 
-    if st.button("Analyze", type="primary"):
-        with st.spinner(f"Analyzing {symbol}..."):
+    # Auto load on symbol change
+    # No button needed — loads automatically like useEffect in React
+    with st.spinner(f"Analyzing {symbol}..."):
 
-            # Fetch stock data + analysis
-            data = fetch(f"/stocks/{symbol}?period={period}")
+        # Fetch stock data + analysis
+        data = fetch(f"/stocks/{symbol}?period={period}")
+
+        # Try stored history first, fall back to live fetch
+        history = fetch(f"/stocks/{symbol}/history/stored?interval={interval}")
+        if not history or not history.get("data"):
             history = fetch(f"/stocks/{symbol}/history?period={period}&interval={interval}")
 
-            if data and history:
-                # ── Key Metrics ──
-                col1, col2, col3, col4 = st.columns(4)
-                with col1:
-                    st.metric("Current Price", f"${data.get('current_price', 0):,.2f}")
-                with col2:
-                    st.metric("Market Cap", f"${data.get('market_cap', 0)/1e9:.2f}B" if data.get('market_cap') else "N/A")
-                with col3:
-                    st.metric("P/E Ratio", f"{data.get('pe_ratio', 'N/A')}")
-                with col4:
+        if data and history:
+            # ── Key Metrics ──
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                price = data.get("current_price", 0)
+                prev = data.get("previous_close", 0)
+                change_pct = round(((price - prev) / prev) * 100, 2) if prev else 0
+                st.metric("Current Price", f"${price:,.2f}", delta=f"{change_pct}%")
+            with col2:
+                market_cap = data.get("market_cap", 0)
+                st.metric("Market Cap", f"${market_cap/1e9:.2f}B" if market_cap else "N/A")
+            with col3:
+                st.metric("P/E Ratio", f"{data.get('pe_ratio', 'N/A')}")
+            with col4:
+                if "analysis" in data:
                     signal = data["analysis"]["signal"]["overall_signal"]
                     color = "🟢" if signal == "BUY" else "🔴" if signal == "SELL" else "🟡"
                     st.metric("Signal", f"{color} {signal}")
 
-                st.divider()
+            st.divider()
 
-                # ── Candlestick Chart ──
-                st.subheader(f"{symbol} Price Chart")
-                df = pd.DataFrame(history["data"])
+            # ── Candlestick Chart — auto loads ──
+            st.subheader(f"{symbol} Price Chart")
+            df = pd.DataFrame(history.get("data", []))
 
+            if not df.empty:
                 fig = make_subplots(
                     rows=2, cols=1,
                     shared_xaxes=True,
@@ -154,6 +165,18 @@ elif page == "📈 Stock Analyzer":
                     close=df["close"],
                     name="Price"
                 ), row=1, col=1)
+
+                # SMA 20 overlay
+                if "analysis" in data:
+                    sma_20 = data["analysis"]["indicators"].get("sma_20")
+                    if sma_20:
+                        fig.add_hline(
+                            y=sma_20,
+                            line_dash="dash",
+                            line_color="orange",
+                            annotation_text="SMA 20",
+                            row=1, col=1
+                        )
 
                 # Volume bars
                 fig.add_trace(go.Bar(
@@ -172,14 +195,20 @@ elif page == "📈 Stock Analyzer":
 
                 st.plotly_chart(fig, use_container_width=True)
 
-                # ── Indicators ──
-                st.subheader("Technical Indicators")
+            st.divider()
+
+            # ── Indicators ──
+            if "analysis" in data:
                 indicators = data["analysis"]["indicators"]
 
+                st.subheader("Technical Indicators")
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    st.metric("RSI (14)", indicators.get("rsi", "N/A"))
-                    st.caption(indicators.get("rsi_signal", ""))
+                    rsi = indicators.get("rsi", 0)
+                    rsi_signal = indicators.get("rsi_signal", "neutral")
+                    rsi_color = "🟢" if rsi_signal == "oversold" else "🔴" if rsi_signal == "overbought" else "🟡"
+                    st.metric("RSI (14)", f"{rsi} {rsi_color}")
+                    st.caption(rsi_signal)
                 with col2:
                     st.metric("SMA 20", indicators.get("sma_20", "N/A"))
                 with col3:
@@ -187,14 +216,47 @@ elif page == "📈 Stock Analyzer":
                 with col4:
                     st.metric("ATR", indicators.get("atr", "N/A"))
 
+                # ── Bollinger Bands ──
+                st.subheader("Bollinger Bands")
+                bb = indicators.get("bollinger_bands", {})
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Upper Band", bb.get("upper", "N/A"))
+                with col2:
+                    st.metric("Middle Band", bb.get("middle", "N/A"))
+                with col3:
+                    st.metric("Lower Band", bb.get("lower", "N/A"))
+
+                # ── MACD ──
+                st.subheader("MACD")
+                macd = indicators.get("macd", {})
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("MACD Line", macd.get("macd_line", "N/A"))
+                with col2:
+                    st.metric("Signal Line", macd.get("signal_line", "N/A"))
+                with col3:
+                    histogram = macd.get("histogram", 0)
+                    st.metric(
+                        "Histogram",
+                        histogram,
+                        delta="Bullish" if histogram and histogram > 0 else "Bearish"
+                    )
+
                 st.divider()
 
-                # ── Signals breakdown ──
+                # ── Signal Breakdown ──
                 st.subheader("Signal Breakdown")
                 signals = data["analysis"]["signal"]["signals"]
+                score = data["analysis"]["signal"]["score"]
+                overall = data["analysis"]["signal"]["overall_signal"]
+
+                color = "green" if overall == "BUY" else "red" if overall == "SELL" else "orange"
+                st.markdown(f"### :{color}[{overall}] (Score: {score})")
                 for s in signals:
                     st.markdown(f"• {s}")
-
+        else:
+            st.warning(f"Could not load data for {symbol}. Check the symbol and try again.")
 
 # PAGE 3: PORTFOLIO 
 
