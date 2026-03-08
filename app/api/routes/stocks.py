@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.services.market_service import get_stock_analysis, get_all_stocks, refresh_stock
+from app.services.market_service import get_stock_analysis, get_all_stocks, refresh_stock, save_stock_history, get_stored_history
 from app.core.fetcher import fetch_stock_history
 
 router = APIRouter(
@@ -55,5 +55,52 @@ def refresh_stock_data(symbol: str, db: Session = Depends(get_db)):
     try:
         stock = refresh_stock(db, symbol)
         return {"message": f"{symbol.upper()} refreshed successfully", "stock": stock}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/{symbol}/history/save")
+def save_history(
+    symbol: str,
+    period: str = "1mo",
+    interval: str = "1d",
+    db: Session = Depends(get_db)
+):
+    """
+    Fetch and store historical data for a stock in PostgreSQL.
+    - period: 1mo, 3mo, 6mo, 1y
+    - interval: 1d, 1wk
+    """
+    try:
+        result = save_stock_history(db, symbol, period=period, interval=interval)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{symbol}/history/stored")
+def get_history_from_db(
+    symbol: str,
+    interval: str = "1d",
+    db: Session = Depends(get_db)
+):
+    """
+    Retrieve stored historical data from PostgreSQL.
+    """
+    try:
+        records = get_stored_history(db, symbol, interval=interval)
+        if not records:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No stored history for {symbol}. Call POST /{symbol}/history/save first."
+            )
+        return {
+            "symbol": symbol.upper(),
+            "interval": interval,
+            "count": len(records),
+            "data": records
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
