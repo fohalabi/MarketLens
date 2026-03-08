@@ -7,7 +7,7 @@ import json
 
 # CONFIG 
 
-API_BASE = "https://marketlens-production-96d7.up.railway.app/"  # inside Docker network
+API_BASE = "https://marketlens-production-96d7.up.railway.app/api"  # inside Docker network
 # API_BASE = "http://host.docker.internal:8000/api"  # use this for local testing
 
 st.set_page_config(
