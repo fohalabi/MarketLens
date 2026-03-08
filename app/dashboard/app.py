@@ -22,7 +22,7 @@ st.set_page_config(
 def fetch(endpoint: str) -> dict:
     """Make a GET request to the FastAPI backend."""
     try:
-        response = requests.get(f"{API_BASE}{endpoint}", timeout=10)
+        response = requests.get(f"{API_BASE}{endpoint}", timeout=30)
         return response.json()
     except Exception as e:
         st.error(f"API error: {str(e)}")
@@ -86,7 +86,7 @@ if page == "📊 Market Overview":
 
     for i, symbol in enumerate(symbols):
         with signal_cols[i]:
-            data = fetch(f"/stocks/{symbol}?period=3mo")
+            data = fetch(f"/stocks/{symbol}")
             if data and "analysis" in data:
                 signal = data["analysis"]["signal"]["overall_signal"]
                 rsi = data["analysis"]["indicators"].get("rsi", 0)
