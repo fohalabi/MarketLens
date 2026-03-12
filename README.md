@@ -281,20 +281,7 @@ Push to main
 
 ---
 
-## 📝 Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | ✅ | PostgreSQL connection string |
-| `REDIS_URL` | ✅ | Redis connection string |
-| `SECRET_KEY` | ✅ | JWT signing secret |
-| `ALPHA_VANTAGE_API_KEY` | ✅ | Free key from alphavantage.co |
-| `BINANCE_API_KEY` | ❌ | Optional — for crypto data |
-| `BINANCE_SECRET_KEY` | ❌ | Optional — for crypto data |
-
----
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -304,15 +291,15 @@ Push to main
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
 ---
 
-## 👤 Author
+## Author
 
-Built with 🔥 by **Fohlabi** ~ evolving from frontend & backend to full-stack Python engineering.
+Built with by **Fohlabi** ~ evolving from frontend & backend to full-stack Python engineering.
 
 ---
 
